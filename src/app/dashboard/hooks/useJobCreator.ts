@@ -185,7 +185,15 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
   const handlePdfChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const pdfFiles = files.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
-    setPdfs(pdfFiles);
+    setPdfs((prev) => {
+      const existing = new Set(
+        prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`)
+      );
+      const fresh = pdfFiles.filter(
+        (f) => !existing.has(`${f.name}-${f.size}-${f.lastModified}`)
+      );
+      return [...prev, ...fresh];
+    });
     if (e.target) e.target.value = "";
   }, []);
 

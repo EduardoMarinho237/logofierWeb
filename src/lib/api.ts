@@ -1,6 +1,7 @@
 "use client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://abonopay.com.br/logofier";
 
 const TOKEN_KEY = "logofier_token";
 const REFRESH_TOKEN_KEY = "logofier_refresh_token";

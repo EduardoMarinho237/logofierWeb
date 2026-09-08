@@ -31,7 +31,7 @@ export function PdfsUpload({
           </span>
           <span className="text-xs text-[#0e525b]/50">
             {mode === "multiple_pdfs"
-              ? "Selecione todos os PDFs que devem receber o logo"
+              ? "Selecione vários de uma vez ou adicione um a um"
               : "Selecione o único PDF que receberá todos os logos"}
           </span>
         </button>
