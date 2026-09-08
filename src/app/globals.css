@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "TAN Nimbus";
+  src: url("/fonts/TAN-NIMBUS.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e4e4eb;
+  --foreground: #0e525b;
+  --primary: #0e525b;
+  --accent: #2b9aa8;
+  --surface: #f7f7fa;
+  --border: #d0d0dc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: "TAN Nimbus", "Playfair Display", Georgia, serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a,
+label,
+input[type="radio"],
+input[type="checkbox"],
+select {
+  cursor: pointer;
+}
+
+input[type="number"],
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  cursor: text;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
 }
