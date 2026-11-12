@@ -146,6 +146,10 @@ export interface LogoPositionConfig {
   position_rest?: Position | null;
 }
 
+export interface PagePositionMap {
+  page_positions: Record<string, Position>;
+}
+
 export interface JobConfig {
   page_selection: PageSelection;
   position: Position;
@@ -153,7 +157,10 @@ export interface JobConfig {
   position_mode?: string;
   mode?: string;
   pos_strategy?: string;
+  logo_axis?: string;
+  logo_axis_rest?: string;
   logo_positions?: Record<string, LogoPositionConfig>;
+  file_page_positions?: Record<string, PagePositionMap>;
 }
 
 export interface Job {
@@ -262,6 +269,8 @@ export interface Preset {
   position: Position;
   position_rest: Position | null;
   position_mode: string;
+  logo_axis: string;
+  logo_axis_rest: string;
   created_at: string | null;
 }
 
@@ -483,14 +492,29 @@ export const api = {
     });
   },
 
+  async updateFilePagePositions(
+    jobId: string,
+    fileIndex: number,
+    pagePositions: Record<string, Position>
+  ): Promise<Job> {
+    return request<Job>(`/api/jobs/${jobId}/files/${fileIndex}/pages/position`, {
+      method: "PUT",
+      body: JSON.stringify({ page_positions: pagePositions }),
+    });
+  },
+
   async getPreviewPage(
     jobId: string,
-    page: number
+    page: number,
+    file: number = 0
   ): Promise<{ blob: Blob; width: number; height: number }> {
-    const res = await fetch(`${API_URL}/api/jobs/${jobId}/preview-page?page=${page}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
+    const res = await fetch(
+      `${API_URL}/api/jobs/${jobId}/preview-page?page=${page}&file=${file}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      }
+    );
     if (!res.ok) {
       throw new ApiError(res.status, res.statusText);
     }

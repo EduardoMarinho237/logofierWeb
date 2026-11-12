@@ -26,6 +26,7 @@ export function PositionControls({
   onCenterBoth,
   onSetSize,
   onResetProportion,
+  onTogglePreserveAspect,
 }: {
   activePosition: Position;
   preserveAspect: boolean;
@@ -37,6 +38,7 @@ export function PositionControls({
   onCenterBoth: () => void;
   onSetSize: (w: number, h: number) => void;
   onResetProportion: () => void;
+  onTogglePreserveAspect: (checked: boolean) => void;
 }) {
   return (
     <div className="flex shrink-0 flex-col gap-3 overflow-y-auto pb-2 lg:w-72">
@@ -64,60 +66,79 @@ export function PositionControls({
       </ControlSection>
 
       <ControlSection title="Tamanho do logo" icon={Layers}>
-            <p className="mb-3 text-xs text-[#0e525b]/60">
-              {preserveAspect
-                ? "Ajuste o tamanho pela largura. A altura é mantida automaticamente para preservar a proporção de cada logo."
-                : "Ajuste livre ou use as alças no preview. O botão abaixo restaura a proporção original do logo."}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-[#0e525b]">
-                Largura (pt)
-                <input
-                  type="number"
-                  min={1}
-                  value={Math.round(activePosition.width)}
-                  onChange={(e) => {
-                    const width = Math.max(10, Number(e.target.value));
-                    onSetActivePosition({
-                      ...activePosition,
-                      width,
-                      height: preserveAspect ? width / logoAspect : activePosition.height,
-                    });
-                  }}
-                  className="w-full cursor-text rounded-lg bg-white px-3 py-2 text-sm shadow-inner shadow-[#0e525b]/5 outline-none transition focus:shadow-md focus:shadow-[#2b9aa8]/20"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-[#0e525b]">
-                Altura (pt)
-                <input
-                  type="number"
-                  min={1}
-                  disabled={preserveAspect}
-                  value={Math.round(activePosition.height)}
-                  onChange={(e) =>
-                    onSetActivePosition({
-                      ...activePosition,
-                      height: Math.max(10, Number(e.target.value)),
-                    })
-                  }
-                  className={`w-full cursor-text rounded-lg bg-white px-3 py-2 text-sm shadow-inner shadow-[#0e525b]/5 outline-none transition focus:shadow-md focus:shadow-[#2b9aa8]/20 ${preserveAspect ? "opacity-60" : ""}`}
-                />
-              </label>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => onSetSize(activePosition.width - SIZE_STEP, activePosition.height - SIZE_STEP)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white py-2.5 text-sm font-medium text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:text-[#2b9aa8] hover:shadow-lg active:scale-[0.98]"
-              >
-                <Minus className="h-4 w-4 text-[#2b9aa8]" /> Menor
-              </button>
-              <button
-                onClick={() => onSetSize(activePosition.width + SIZE_STEP, activePosition.height + SIZE_STEP)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white py-2.5 text-sm font-medium text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:text-[#2b9aa8] hover:shadow-lg active:scale-[0.98]"
-              >
-                <Plus className="h-4 w-4 text-[#2b9aa8]" /> Maior
-              </button>
-            </div>
+        <label className="mb-3 flex cursor-pointer items-center gap-2 text-sm font-medium text-[#0e525b]">
+          <input
+            type="checkbox"
+            checked={preserveAspect}
+            onChange={(e) => onTogglePreserveAspect(e.target.checked)}
+            className="h-4 w-4 accent-[#2b9aa8]"
+          />
+          Manter proporção
+        </label>
+        <p className="mb-3 text-xs text-[#0e525b]/60">
+          {preserveAspect
+            ? "Ajuste o tamanho pela largura. A altura é mantida automaticamente para preservar a proporção original do logo."
+            : "Ajuste livre ou use as alças no preview. O botão abaixo restaura a proporção original do logo."}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[#0e525b]">
+            Largura (pt)
+            <input
+              type="number"
+              min={1}
+              value={Math.round(activePosition.width)}
+              onChange={(e) => {
+                const width = Math.max(10, Number(e.target.value));
+                onSetActivePosition({
+                  ...activePosition,
+                  height: preserveAspect ? width / logoAspect : activePosition.height,
+                  width,
+                });
+              }}
+              className="w-full cursor-text rounded-lg bg-white px-3 py-2 text-sm shadow-inner shadow-[#0e525b]/5 outline-none transition focus:shadow-md focus:shadow-[#2b9aa8]/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[#0e525b]">
+            Altura (pt)
+            <input
+              type="number"
+              min={1}
+              disabled={preserveAspect}
+              value={Math.round(activePosition.height)}
+              onChange={(e) =>
+                onSetActivePosition({
+                  ...activePosition,
+                  height: Math.max(10, Number(e.target.value)),
+                })
+              }
+              className={`w-full cursor-text rounded-lg bg-white px-3 py-2 text-sm shadow-inner shadow-[#0e525b]/5 outline-none transition focus:shadow-md focus:shadow-[#2b9aa8]/20 ${preserveAspect ? "opacity-60" : ""}`}
+            />
+          </label>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => {
+              onSetSize(
+                activePosition.width - SIZE_STEP,
+                activePosition.height - SIZE_STEP
+              );
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white py-2.5 text-sm font-medium text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:text-[#2b9aa8] hover:shadow-lg active:scale-[0.98]"
+          >
+            <Minus className="h-4 w-4 text-[#2b9aa8]" /> Menor
+          </button>
+          <button
+            onClick={() => {
+              onSetSize(
+                activePosition.width + SIZE_STEP,
+                activePosition.height + SIZE_STEP
+              );
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white py-2.5 text-sm font-medium text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:text-[#2b9aa8] hover:shadow-lg active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4 text-[#2b9aa8]" /> Maior
+          </button>
+        </div>
         <button
           onClick={onResetProportion}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0e525b] px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0e525b]/25 transition hover:bg-[#0c464f] active:scale-[0.98]"

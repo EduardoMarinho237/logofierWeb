@@ -11,22 +11,28 @@ export function PositionActions({
   mode,
   activeStep,
   isPerLogo,
+  isPageEdit,
   saving,
   logoIndex,
   logoCount,
+  confirmLabel,
   onSwitchStep,
   onNavigateLogo,
   onConfirm,
+  onCancel,
 }: {
   mode: "single" | "first_rest";
   activeStep: 0 | 1;
   isPerLogo: boolean;
+  isPageEdit?: boolean;
   saving: boolean;
   logoIndex: number | null;
   logoCount: number;
+  confirmLabel?: string;
   onSwitchStep: (step: 0 | 1) => void;
   onNavigateLogo: (next: number) => void;
   onConfirm: () => void;
+  onCancel?: () => void;
 }) {
   return (
     <>
@@ -51,7 +57,7 @@ export function PositionActions({
         </div>
       )}
 
-      {mode === "first_rest" && activeStep === 0 ? (
+      {!isPageEdit && mode === "first_rest" && activeStep === 0 ? (
         <div className="flex flex-col gap-2">
           <button
             onClick={() => onSwitchStep(1)}
@@ -61,7 +67,7 @@ export function PositionActions({
             <ArrowRight className="h-5 w-5" />
           </button>
         </div>
-      ) : mode === "first_rest" && activeStep === 1 ? (
+      ) : !isPageEdit && mode === "first_rest" && activeStep === 1 ? (
         <div className="flex gap-2">
           <button
             onClick={() => onSwitchStep(0)}
@@ -83,7 +89,7 @@ export function PositionActions({
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5" />
-                {isPerLogo ? "Salvar e concluir" : "Revisar & baixar"}
+                {confirmLabel || (isPerLogo ? "Salvar e concluir" : "Revisar & baixar")}
               </>
             )}
           </button>
@@ -102,9 +108,20 @@ export function PositionActions({
           ) : (
             <>
               <CheckCircle2 className="h-5 w-5" />
-              Revisar & baixar
+              {confirmLabel || "Revisar & baixar"}
             </>
           )}
+        </button>
+      )}
+
+      {isPageEdit && onCancel && (
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#f7f7fa] px-4 py-3 text-sm font-semibold text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:bg-white hover:shadow-lg active:scale-[0.98] disabled:opacity-60"
+        >
+          <ArrowLeftIcon className="h-4 w-4 text-[#2b9aa8]" />
+          Cancelar e voltar
         </button>
       )}
     </>

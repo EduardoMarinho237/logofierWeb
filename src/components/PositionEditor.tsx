@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Move } from "lucide-react";
 import type { Position } from "@/lib/api";
+import type { LogoAxis } from "@/app/position/[jobId]/_components/LogoAxisControl";
 
 const KonvaStage = dynamic(() => import("./KonvaStage"), { ssr: false });
 
@@ -15,6 +16,9 @@ interface Props {
   onChange: (p: Position) => void;
   onResetProportion?: () => void;
   preserveAspect?: boolean;
+  logoAxis?: LogoAxis;
+  isMultipleLogosShared?: boolean;
+  allLogoAspects?: number[];
 }
 
 export function PositionEditor({
@@ -26,6 +30,9 @@ export function PositionEditor({
   onChange,
   onResetProportion,
   preserveAspect,
+  logoAxis,
+  isMultipleLogosShared,
+  allLogoAspects,
 }: Props) {
   return (
     <div className="flex h-full w-full flex-col gap-3">
@@ -39,6 +46,9 @@ export function PositionEditor({
           onChange={onChange}
           onResetProportion={onResetProportion}
           preserveAspect={preserveAspect}
+          logoAxis={logoAxis}
+          isMultipleLogosShared={isMultipleLogosShared}
+          allLogoAspects={allLogoAspects}
         />
       </div>
       <div className="flex shrink-0 items-center gap-2 rounded-xl bg-[#0e525b]/5 px-4 py-2 text-xs font-medium text-[#0e525b]/80">

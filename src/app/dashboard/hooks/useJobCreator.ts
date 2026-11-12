@@ -291,6 +291,8 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
         position_mode: effectivePositionMode,
         mode,
         pos_strategy: effectiveStrategy,
+        logo_axis: preset?.logo_axis ?? "top_left",
+        logo_axis_rest: preset?.logo_axis_rest ?? "top_left",
         ...(positionRest ? { position_rest: positionRest } : {}),
       };
       const logoFiles = selectedLogos.filter((l) => l.kind === "file").map((l) => (l.kind === "file" ? l.file : null)).filter((f): f is File => f !== null);

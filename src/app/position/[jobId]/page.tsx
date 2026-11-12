@@ -1,6 +1,7 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AuthGuard } from "@/components/AuthGuard";
 import { usePositionEditor } from "./_hooks/usePositionEditor";
@@ -10,6 +11,7 @@ import { PositionError } from "./_components/PositionError";
 import { StepTabs } from "./_components/StepTabs";
 import { PositionControls } from "./_components/PositionControls";
 import { PositionActions } from "./_components/PositionActions";
+import { LogoAxisControl } from "./_components/LogoAxisControl";
 
 const PositionEditor = dynamic(() => import("@/components/PositionEditor"), {
   ssr: false,
@@ -18,21 +20,56 @@ const PositionEditor = dynamic(() => import("@/components/PositionEditor"), {
 export default function PositionPage() {
   const params = useParams<{ jobId: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const jobId = params.jobId;
+
   const logoParam = searchParams.get("logo");
   const logoIndex =
     logoParam !== null && !Number.isNaN(Number(logoParam)) ? Number(logoParam) : null;
 
-  const editor = usePositionEditor(jobId, logoIndex);
+  const fileParam = searchParams.get("file");
+  const fileIndex =
+    fileParam !== null && !Number.isNaN(Number(fileParam)) ? Number(fileParam) : null;
 
-  const headerTitle = editor.isPerLogo
-    ? `Posicionar logo ${editor.logoIndex !== null ? editor.logoIndex + 1 : ""}${
-        editor.logoCount > 0 ? ` de ${editor.logoCount}` : ""
-      }`
-    : "Posicionar logo";
+  const pagesParam = searchParams.get("pages");
+  const selectedPages = useMemo(
+    () =>
+      pagesParam && fileIndex !== null
+        ? pagesParam
+            .split(",")
+            .map((p) => Number(p.trim()))
+            .filter((p) => !Number.isNaN(p))
+        : [],
+    [pagesParam, fileIndex]
+  );
 
-  const headerSubtitle =
-    editor.mode === "first_rest"
+  const returnTo = searchParams.get("returnTo");
+
+  const editor = usePositionEditor(jobId, logoIndex, fileIndex, selectedPages, returnTo);
+
+  const handleCancel = useCallback(() => {
+    if (returnTo === "review") {
+      router.push(`/review/${jobId}`);
+    } else if (editor.isPerLogo) {
+      router.push(`/arrange/${jobId}`);
+    } else {
+      router.push(`/review/${jobId}`);
+    }
+  }, [returnTo, editor.isPerLogo, router, jobId]);
+
+  const headerTitle = editor.isPageEdit
+    ? `Ajustar posição`
+    : editor.isPerLogo
+      ? `Posicionar logo ${editor.logoIndex !== null ? editor.logoIndex + 1 : ""}${
+          editor.logoCount > 0 ? ` de ${editor.logoCount}` : ""
+        }`
+      : "Posicionar logo";
+
+  const headerSubtitle = editor.isPageEdit
+    ? selectedPages.length === 1
+      ? `Página ${selectedPages[0] + 1} do arquivo ${fileIndex !== null ? fileIndex + 1 : ""}`
+      : `${selectedPages.length} páginas selecionadas do arquivo ${fileIndex !== null ? fileIndex + 1 : ""}`
+    : editor.mode === "first_rest"
       ? editor.activeStep === 0
         ? "Posicione a logo na 1ª página"
         : "Posicione a logo nas demais páginas"
@@ -52,11 +89,13 @@ export default function PositionPage() {
         {!editor.loading && editor.previewUrl && (
           <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6 lg:flex-row">
             <div className="flex min-h-0 flex-1 flex-col">
-              <StepTabs
-                mode={editor.mode}
-                activeStep={editor.activeStep}
-                onChange={editor.switchStep}
-              />
+              {!editor.isPageEdit && (
+                <StepTabs
+                  mode={editor.mode}
+                  activeStep={editor.activeStep}
+                  onChange={editor.switchStep}
+                />
+              )}
               <div className="min-h-0 flex-1 overflow-hidden rounded-2xl bg-[#f7f7fa] shadow-2xl shadow-[#0e525b]/10">
                 <PositionEditor
                   previewImage={editor.previewUrl}
@@ -67,6 +106,9 @@ export default function PositionPage() {
                   onChange={editor.setActivePosition}
                   onResetProportion={editor.resetProportion}
                   preserveAspect={editor.preserveAspect}
+                  logoAxis={editor.activeLogoAxis}
+                  isMultipleLogosShared={editor.isMultipleLogosShared}
+                  allLogoAspects={editor.allLogoAspects}
                 />
               </div>
               {editor.error && (
@@ -87,18 +129,28 @@ export default function PositionPage() {
                 onCenterVert={editor.centerVert}
                 onCenterBoth={editor.centerBoth}
                 onSetSize={editor.setSize}
-                onResetProportion={editor.resetProportion}
-              />
+                  onResetProportion={editor.resetProportion}
+                  onTogglePreserveAspect={editor.togglePreserveAspect}
+                />
+              {!editor.isPageEdit && editor.preserveAspect && (
+                <LogoAxisControl
+                  value={editor.activeLogoAxis}
+                  onChange={editor.setActiveLogoAxis}
+                />
+              )}
               <PositionActions
                 mode={editor.mode}
                 activeStep={editor.activeStep}
                 isPerLogo={editor.isPerLogo}
+                isPageEdit={editor.isPageEdit}
                 saving={editor.saving}
                 logoIndex={editor.logoIndex}
                 logoCount={editor.logoCount}
+                confirmLabel={editor.isPageEdit ? "Salvar ajuste" : undefined}
                 onSwitchStep={editor.switchStep}
                 onNavigateLogo={editor.navigateToLogo}
                 onConfirm={editor.handleConfirm}
+                onCancel={editor.isPageEdit ? handleCancel : undefined}
               />
             </div>
           </div>

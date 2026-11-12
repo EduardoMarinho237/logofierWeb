@@ -53,6 +53,8 @@ export function SavePresetModal({
         },
         position_rest: config.position_rest ?? null,
         position_mode: config.position_mode ?? "single",
+        logo_axis: config.logo_axis ?? "top_left",
+        logo_axis_rest: config.logo_axis_rest ?? "top_left",
       });
       onProceed();
     } catch (err: unknown) {
