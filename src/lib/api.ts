@@ -141,6 +141,15 @@ export interface Position {
   page_height: number;
 }
 
+export type LogoAxis = "top_left" | "top_right" | "bottom_left" | "bottom_right" | "center";
+
+export interface LogoPlacement {
+  position: Position;
+  position_rest?: Position | null;
+  logo_axis: LogoAxis;
+  logo_axis_rest: LogoAxis;
+}
+
 export interface LogoPositionConfig {
   position: Position;
   position_rest?: Position | null;
@@ -159,6 +168,7 @@ export interface JobConfig {
   pos_strategy?: string;
   logo_axis?: string;
   logo_axis_rest?: string;
+  logo_placements?: LogoPlacement[];
   from_preset?: boolean;
   logo_positions?: Record<string, LogoPositionConfig>;
   file_page_positions?: Record<string, PagePositionMap>;
@@ -272,6 +282,7 @@ export interface Preset {
   position_mode: string;
   logo_axis: string;
   logo_axis_rest: string;
+  logo_placements: LogoPlacement[];
   created_at: string | null;
 }
 
@@ -604,9 +615,10 @@ export const api = {
     file: number,
     pages: number[]
   ): Promise<ReviewPreviewResponse> {
+    const cacheBust = Date.now();
     return request<ReviewPreviewResponse>(
-      `/api/jobs/${jobId}/review-preview?file=${file}&pages=${pages.join(",")}`,
-      { method: "GET" }
+      `/api/jobs/${jobId}/review-preview?file=${file}&pages=${pages.join(",")}&_=${cacheBust}`,
+      { method: "GET", cache: "no-store" }
     );
   },
 };

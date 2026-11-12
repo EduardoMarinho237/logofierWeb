@@ -19,6 +19,10 @@ interface Props {
   logoAxis?: LogoAxis;
   isMultipleLogosShared?: boolean;
   allLogoAspects?: number[];
+  placements?: Position[];
+  selectedPlacement?: number;
+  onSelectPlacement?: (index: number) => void;
+  onChangePlacement?: (position: Position) => void;
 }
 
 const PADDING = 20;
@@ -35,6 +39,10 @@ export default function KonvaStage({
   logoAxis = "top_left",
   isMultipleLogosShared = false,
   allLogoAspects,
+  placements = [position],
+  selectedPlacement = 0,
+  onSelectPlacement,
+  onChangePlacement,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -120,40 +128,60 @@ export default function KonvaStage({
   // Dotted bounding box showing the maximum area occupied by all logos in
   // multiple-logos shared mode. Width is fixed; height is determined by the
   // tallest logo (smallest aspect ratio) at the current width.
-  const maxHeightPt = useMemo(() => {
-    if (!isMultipleLogosShared || !allLogoAspects || allLogoAspects.length === 0)
-      return heightPt;
-    const minAspect = Math.min(...allLogoAspects.filter((a) => a > 0));
-    return Math.max(heightPt, widthPt / minAspect);
-  }, [isMultipleLogosShared, allLogoAspects, widthPt, heightPt]);
+  const maxLogoAspect = useMemo(() => {
+    if (!allLogoAspects || allLogoAspects.length === 0) return logoAspect;
+    const validAspects = allLogoAspects.filter((aspect) => aspect > 0);
+    return validAspects.length > 0 ? Math.min(...validAspects) : logoAspect;
+  }, [allLogoAspects, logoAspect]);
+
+  const maxHeightPt = isMultipleLogosShared
+    ? Math.max(heightPt, widthPt / maxLogoAspect)
+    : heightPt;
 
   const boundingBox = useMemo(() => {
-    if (!isMultipleLogosShared || maxHeightPt <= heightPt) return null;
-    const refOff = getAxisOffset(widthPt, maxHeightPt, logoAxis);
-    const curOff = getAxisOffset(widthPt, heightPt, logoAxis);
+    if (
+      !isMultipleLogosShared ||
+      !allLogoAspects ||
+      allLogoAspects.length === 0
+    )
+      return null;
+    // Start from the exact anchor marker rendered for the reference logo, then
+    // subtract only the offset of the maximum-height logo.
+    const maxOff = getAxisOffset(widthPt, maxHeightPt, logoAxis);
     return {
-      x: xPt + curOff.x - refOff.x,
-      y: yPt + curOff.y - refOff.y,
+      x: anchor.x - maxOff.x,
+      y: anchor.y - maxOff.y,
       width: widthPt,
       height: maxHeightPt,
     };
-  }, [isMultipleLogosShared, maxHeightPt, heightPt, logoAxis, xPt, yPt, widthPt]);
+  }, [
+    isMultipleLogosShared,
+    allLogoAspects,
+    maxHeightPt,
+    logoAxis,
+    anchor.x,
+    anchor.y,
+    widthPt,
+  ]);
 
   useEffect(() => {
     if (logoRef.current && trRef.current) {
       trRef.current.nodes([logoRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [logoImg, logoAspect]);
+  }, [logoImg, logoAspect, selectedPlacement, placements]);
 
-  function commit(x: number, y: number, w: number, h: number) {
-    onChange({
-      ...position,
+  function commitPlacement(index: number, x: number, y: number, w: number, h: number) {
+    const next = placements[index] ?? position;
+    const updated = {
+      ...next,
       x,
       y,
       width: w,
       height: preserveAspect ? w / logoAspect : h,
-    });
+    };
+    if (index === selectedPlacement) onChangePlacement?.(updated);
+    else onChange(updated);
   }
 
   return (
@@ -179,15 +207,24 @@ export default function KonvaStage({
                 height={imgDrawH}
               />
             )}
-            {logoImg && (
-              <KonvaImage
-                ref={logoRef}
+            {logoImg && placements.map((placement, index) => {
+              const active = index === selectedPlacement;
+              const w = Math.max(1, placement.width);
+              const h = preserveAspect ? Math.max(1, w / logoAspect) : Math.max(1, placement.height);
+              const px = clamp(placement.x, 0, Math.max(0, pageWidthPoints - w));
+              const py = clamp(placement.y, 0, Math.max(0, pageHeightPoints - h));
+              return <KonvaImage
+                key={index}
+                ref={active ? logoRef : undefined}
                 image={logoImg}
-                x={xPt}
-                y={yPt}
-                width={widthPt}
-                height={heightPt}
-                draggable
+                x={px}
+                y={py}
+                width={w}
+                height={h}
+                opacity={active ? 1 : 0.62}
+                draggable={active}
+                onClick={() => onSelectPlacement?.(index)}
+                onTap={() => onSelectPlacement?.(index)}
                 onMouseEnter={(e) => {
                   const c = e.target.getStage()?.container();
                   if (c) c.style.cursor = "move";
@@ -197,11 +234,12 @@ export default function KonvaStage({
                   if (c) c.style.cursor = "default";
                 }}
                 onDragMove={(e) =>
-                  commit(
-                    clamp(e.target.x(), 0, pageWidthPoints - widthPt),
-                    clamp(e.target.y(), 0, pageHeightPoints - heightPt),
-                    widthPt,
-                    heightPt
+                    commitPlacement(
+                      index,
+                      clamp(e.target.x(), 0, pageWidthPoints - w),
+                      clamp(e.target.y(), 0, pageHeightPoints - h),
+                      w,
+                      h
                   )
                 }
                 onDblClick={(e) => {
@@ -214,16 +252,17 @@ export default function KonvaStage({
                   const newH = Math.max(5, Math.abs(node.height() * node.scaleY()));
                   node.scaleX(1);
                   node.scaleY(1);
-                  commit(node.x(), node.y(), newW, newH);
-                }}
-              />
-            )}
+                   commitPlacement(index, node.x(), node.y(), newW, newH);
+                 }}
+              />;
+            })}
             {logoImg && (
               <Transformer
                 ref={trRef}
                 rotateEnabled={false}
                 keepRatio={preserveAspect ? true : false}
                 flipEnabled={false}
+                borderEnabled={false}
                 anchorSize={10}
                 anchorCornerRadius={3}
                 borderStroke="#0e525b"
@@ -243,7 +282,7 @@ export default function KonvaStage({
                 width={boundingBox.width}
                 height={boundingBox.height}
                 dash={[6, 4]}
-                stroke="#0e525b"
+                stroke="#2b9aa8"
                 strokeWidth={1.5}
                 fillEnabled={false}
                 listening={false}

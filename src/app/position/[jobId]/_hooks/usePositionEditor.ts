@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, type JobConfig, type PageSelection, type Position } from "@/lib/api";
+import { api, type JobConfig, type LogoPlacement, type PageSelection, type Position } from "@/lib/api";
 import { clamp, loadImage } from "../utils";
 import type { LogoAxis } from "../_components/LogoAxisControl";
 
@@ -50,6 +50,8 @@ export function usePositionEditor(
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [allLogoAspects, setAllLogoAspects] = useState<number[]>([]);
+  const [placements, setPlacements] = useState<LogoPlacement[]>([]);
+  const [selectedPlacement, setSelectedPlacement] = useState(0);
 
   const isMultipleLogosShared = useMemo(
     () => !isPerLogo && !isPageEdit && jobModeType === "multiple_logos",
@@ -57,30 +59,84 @@ export function usePositionEditor(
   );
 
   const activePosition = useMemo(() => {
+    if (placements.length > 0) {
+      const placement = placements[selectedPlacement] ?? placements[0];
+      if (mode === "single" || isPageEdit) return placement.position;
+      return activeStep === 0 ? placement.position : placement.position_rest ?? placement.position;
+    }
     if (mode === "single" || isPageEdit) return position;
     return activeStep === 0 ? position : positionRest ?? position;
-  }, [mode, activeStep, position, positionRest, isPageEdit]);
+  }, [mode, activeStep, position, positionRest, isPageEdit, placements, selectedPlacement]);
 
   const activeLogoAxis = useMemo(() => {
+    if (placements.length > 0) {
+      const placement = placements[selectedPlacement] ?? placements[0];
+      if (mode === "single" || isPageEdit) return placement.logo_axis;
+      return activeStep === 0 ? placement.logo_axis : placement.logo_axis_rest;
+    }
     if (mode === "single" || isPageEdit) return logoAxis;
     return activeStep === 0 ? logoAxis : logoAxisRest;
-  }, [mode, activeStep, logoAxis, logoAxisRest, isPageEdit]);
+  }, [mode, activeStep, logoAxis, logoAxisRest, isPageEdit, placements, selectedPlacement]);
+
+  const activePlacements = useMemo(
+    () => placements.map((item) => mode === "first_rest" && activeStep === 1
+      ? item.position_rest ?? item.position
+      : item.position),
+    [placements, mode, activeStep]
+  );
 
   const setActivePosition = useCallback(
     (p: Position) => {
+      if (placements.length > 0) {
+        setPlacements((prev) => prev.map((item, index) => {
+          if (index !== selectedPlacement) return item;
+          return mode === "single" || isPageEdit
+            ? { ...item, position: p }
+            : activeStep === 0 ? { ...item, position: p } : { ...item, position_rest: p };
+        }));
+        return;
+      }
       if (mode === "single" || activeStep === 0 || isPageEdit) setPosition(p);
       else setPositionRest(p);
     },
-    [mode, activeStep, isPageEdit]
+    [mode, activeStep, isPageEdit, placements.length, selectedPlacement]
   );
 
   const setActiveLogoAxis = useCallback(
     (axis: LogoAxis) => {
+      if (placements.length > 0) {
+        setPlacements((prev) => prev.map((item, index) => {
+          if (index !== selectedPlacement) return item;
+          return mode === "single" || isPageEdit
+            ? { ...item, logo_axis: axis }
+            : activeStep === 0 ? { ...item, logo_axis: axis } : { ...item, logo_axis_rest: axis };
+        }));
+        return;
+      }
       if (mode === "single" || activeStep === 0) setLogoAxis(axis);
       else setLogoAxisRest(axis);
     },
-    [mode, activeStep]
+    [mode, activeStep, isPageEdit, placements.length, selectedPlacement]
   );
+
+  const addPlacement = useCallback(() => {
+    if (placements.length >= 3) return;
+    const base = activePosition;
+    const next: LogoPlacement = {
+      position: { ...base, x: clamp(base.x + 20, 0, base.page_width - base.width), y: clamp(base.y + 20, 0, base.page_height - base.height) },
+      position_rest: mode === "first_rest" ? { ...base, x: clamp(base.x + 20, 0, base.page_width - base.width), y: clamp(base.y + 20, 0, base.page_height - base.height) } : null,
+      logo_axis: activeLogoAxis,
+      logo_axis_rest: activeLogoAxis,
+    };
+    setPlacements((prev) => [...prev, next]);
+    setSelectedPlacement(placements.length);
+  }, [placements.length, activePosition, mode, activeLogoAxis]);
+
+  const removePlacement = useCallback(() => {
+    if (placements.length <= 1) return;
+    setPlacements((prev) => prev.filter((_, index) => index !== selectedPlacement));
+    setSelectedPlacement((prev) => Math.max(0, Math.min(prev, placements.length - 2)));
+  }, [placements.length, selectedPlacement]);
 
   // Resolve the effective position for a page, mirroring the backend rule.
   const resolvePagePosition = useCallback(
@@ -149,6 +205,9 @@ export function usePositionEditor(
         setPreserveAspect(true);
         setLogoAxis((job.config?.logo_axis as LogoAxis) ?? "top_left");
         setLogoAxisRest((job.config?.logo_axis_rest as LogoAxis) ?? "top_left");
+        const savedPlacements = (job.config?.logo_placements ?? []).slice(0, 3);
+        if (savedPlacements.length > 0) setPlacements(savedPlacements);
+        setSelectedPlacement(0);
 
         let initialPosition: Position;
         if (isPageEdit && fileIndex !== null && selectedPages.length > 0) {
@@ -175,6 +234,14 @@ export function usePositionEditor(
         }
 
         setPosition(initialPosition);
+        if (savedPlacements.length === 0) {
+          setPlacements([{
+            position: initialPosition,
+            position_rest: null,
+            logo_axis: (job.config?.logo_axis as LogoAxis) ?? "top_left",
+            logo_axis_rest: (job.config?.logo_axis_rest as LogoAxis) ?? "top_left",
+          }]);
+        }
 
         if (jobMode === "first_rest" && (perLogo?.position_rest ?? job.config?.position_rest)) {
           const rest = perLogo?.position_rest ?? job.config?.position_rest;
@@ -188,6 +255,11 @@ export function usePositionEditor(
             page_height: rest?.page_height || ph,
           };
           setPositionRest(restPos);
+          if (savedPlacements.length === 0) {
+            setPlacements((prev) => prev.map((item, index) =>
+              index === 0 ? { ...item, position_rest: restPos } : item
+            ));
+          }
         } else {
           setPositionRest(null);
         }
@@ -367,13 +439,14 @@ export function usePositionEditor(
     } else {
       const job = await api.getJob(jobId);
       const existing = job.config ?? {};
-      const config: JobConfig = {
+        const config: JobConfig = {
         ...existing,
         page_selection: pageSelection,
         position,
         position_mode: mode,
         logo_axis: logoAxis,
-        logo_axis_rest: logoAxisRest,
+          logo_axis_rest: logoAxisRest,
+          logo_placements: placements.slice(0, 3),
         ...(mode === "first_rest" && positionRest ? { position_rest: positionRest } : {}),
       };
       await api.updateConfig(jobId, config);
@@ -391,6 +464,7 @@ export function usePositionEditor(
     mode,
     logoAxis,
     logoAxisRest,
+    placements,
   ]);
 
   const handleConfirm = useCallback(async () => {
@@ -458,5 +532,11 @@ export function usePositionEditor(
     switchStep,
     handleConfirm,
     navigateToLogo,
+    placements,
+    activePlacements,
+    selectedPlacement,
+    setSelectedPlacement,
+    addPlacement,
+    removePlacement,
   };
 }

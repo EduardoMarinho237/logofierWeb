@@ -109,6 +109,10 @@ export default function PositionPage() {
                   logoAxis={editor.activeLogoAxis}
                   isMultipleLogosShared={editor.isMultipleLogosShared}
                   allLogoAspects={editor.allLogoAspects}
+                  placements={editor.activePlacements}
+                  selectedPlacement={editor.selectedPlacement}
+                  onSelectPlacement={editor.setSelectedPlacement}
+                  onChangePlacement={editor.setActivePosition}
                 />
               </div>
               {editor.error && (
@@ -119,6 +123,30 @@ export default function PositionPage() {
             </div>
 
             <div className="flex shrink-0 flex-col gap-3 overflow-y-auto pb-2 lg:w-72">
+              {!editor.isPageEdit && (
+                <div className="rounded-2xl bg-[#f7f7fa] p-4 shadow-xl shadow-[#0e525b]/5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-[#0e525b]">Logotipos na página</h2>
+                    <span className="text-xs text-[#0e525b]/50">{editor.placements.length}/3</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {editor.placements.map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => editor.setSelectedPlacement(index)}
+                        className={`rounded-lg px-2 py-2 text-xs font-semibold ${editor.selectedPlacement === index ? "bg-[#2b9aa8] text-white" : "bg-white text-[#0e525b]"}`}
+                      >
+                        Logo {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={editor.addPlacement} disabled={editor.placements.length >= 3} className="flex-1 rounded-lg bg-[#0e525b] px-2 py-2 text-xs font-semibold text-white disabled:opacity-40">Adicionar</button>
+                    <button type="button" onClick={editor.removePlacement} disabled={editor.placements.length <= 1} className="rounded-lg bg-white px-2 py-2 text-xs font-semibold text-red-600 disabled:opacity-40">Remover</button>
+                  </div>
+                </div>
+              )}
               <PositionControls
                 activePosition={editor.activePosition}
                 preserveAspect={editor.preserveAspect}

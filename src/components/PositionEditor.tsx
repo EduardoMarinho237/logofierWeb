@@ -19,6 +19,10 @@ interface Props {
   logoAxis?: LogoAxis;
   isMultipleLogosShared?: boolean;
   allLogoAspects?: number[];
+  placements?: Position[];
+  selectedPlacement?: number;
+  onSelectPlacement?: (index: number) => void;
+  onChangePlacement?: (position: Position) => void;
 }
 
 export function PositionEditor({
@@ -33,6 +37,10 @@ export function PositionEditor({
   logoAxis,
   isMultipleLogosShared,
   allLogoAspects,
+  placements,
+  selectedPlacement,
+  onSelectPlacement,
+  onChangePlacement,
 }: Props) {
   return (
     <div className="flex h-full w-full flex-col gap-3">
@@ -49,6 +57,10 @@ export function PositionEditor({
           logoAxis={logoAxis}
           isMultipleLogosShared={isMultipleLogosShared}
           allLogoAspects={allLogoAspects}
+          placements={placements}
+          selectedPlacement={selectedPlacement}
+          onSelectPlacement={onSelectPlacement}
+          onChangePlacement={onChangePlacement}
         />
       </div>
       <div className="flex shrink-0 items-center gap-2 rounded-xl bg-[#0e525b]/5 px-4 py-2 text-xs font-medium text-[#0e525b]/80">

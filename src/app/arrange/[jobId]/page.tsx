@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowRight,
   ArrowLeft as ArrowLeftIcon,
+  ArrowRight,
   CheckCircle2,
   Pencil,
   Settings2,
@@ -119,13 +119,6 @@ export default function ArrangePage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-[#f7f7fa] px-3 py-2 text-sm font-medium text-[#0e525b] shadow-md shadow-[#0e525b]/8 transition hover:bg-white hover:shadow-lg active:scale-[0.98]"
-        >
-          <ArrowLeftIcon className="h-4 w-4 text-[#2b9aa8]" />
-          <span className="hidden sm:inline">Voltar</span>
-        </button>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-5 sm:px-8 sm:py-6">

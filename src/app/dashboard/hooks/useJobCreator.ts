@@ -302,6 +302,7 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
         pos_strategy: effectiveStrategy,
         logo_axis: preset?.logo_axis ?? "top_left",
         logo_axis_rest: preset?.logo_axis_rest ?? "top_left",
+        logo_placements: preset?.logo_placements ?? [],
         from_preset: locked,
         ...(positionRest ? { position_rest: positionRest } : {}),
       };
