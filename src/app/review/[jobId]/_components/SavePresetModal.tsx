@@ -56,6 +56,7 @@ export function SavePresetModal({
         logo_axis: config.logo_axis ?? "top_left",
         logo_axis_rest: config.logo_axis_rest ?? "top_left",
         logo_placements: config.logo_placements ?? [],
+        logo_placements_rest: config.logo_placements_rest ?? [],
       });
       onProceed();
     } catch (err: unknown) {

@@ -169,6 +169,7 @@ export interface JobConfig {
   logo_axis?: string;
   logo_axis_rest?: string;
   logo_placements?: LogoPlacement[];
+  logo_placements_rest?: LogoPlacement[];
   from_preset?: boolean;
   logo_positions?: Record<string, LogoPositionConfig>;
   file_page_positions?: Record<string, PagePositionMap>;
@@ -283,6 +284,7 @@ export interface Preset {
   logo_axis: string;
   logo_axis_rest: string;
   logo_placements: LogoPlacement[];
+  logo_placements_rest: LogoPlacement[];
   created_at: string | null;
 }
 

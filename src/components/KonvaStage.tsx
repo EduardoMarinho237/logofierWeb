@@ -165,9 +165,11 @@ export default function KonvaStage({
   ]);
 
   useEffect(() => {
-    if (logoRef.current && trRef.current) {
+    if (placements.length > 0 && logoRef.current && trRef.current) {
       trRef.current.nodes([logoRef.current]);
       trRef.current.getLayer()?.batchDraw();
+    } else if (trRef.current) {
+      trRef.current.nodes([]);
     }
   }, [logoImg, logoAspect, selectedPlacement, placements]);
 
@@ -256,7 +258,7 @@ export default function KonvaStage({
                  }}
               />;
             })}
-            {logoImg && (
+            {logoImg && placements.length > 0 && (
               <Transformer
                 ref={trRef}
                 rotateEnabled={false}
@@ -288,7 +290,7 @@ export default function KonvaStage({
                 listening={false}
               />
             )}
-            {logoImg && preserveAspect && (
+            {logoImg && placements.length > 0 && preserveAspect && (
               <>
                 <Circle
                   x={anchor.x}

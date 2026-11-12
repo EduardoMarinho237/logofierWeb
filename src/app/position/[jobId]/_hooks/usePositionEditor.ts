@@ -51,6 +51,9 @@ export function usePositionEditor(
   const [saving, setSaving] = useState(false);
   const [allLogoAspects, setAllLogoAspects] = useState<number[]>([]);
   const [placements, setPlacements] = useState<LogoPlacement[]>([]);
+  const [placementsRest, setPlacementsRest] = useState<LogoPlacement[]>([]);
+  const editingRestPlacements = mode === "first_rest" && activeStep === 1 && !isPageEdit;
+  const currentPlacements = editingRestPlacements ? placementsRest : placements;
   const [selectedPlacement, setSelectedPlacement] = useState(0);
 
   const isMultipleLogosShared = useMemo(
@@ -59,68 +62,66 @@ export function usePositionEditor(
   );
 
   const activePosition = useMemo(() => {
-    if (placements.length > 0) {
-      const placement = placements[selectedPlacement] ?? placements[0];
+    if (currentPlacements.length > 0) {
+      const placement = currentPlacements[selectedPlacement] ?? currentPlacements[0];
       if (mode === "single" || isPageEdit) return placement.position;
       return activeStep === 0 ? placement.position : placement.position_rest ?? placement.position;
     }
     if (mode === "single" || isPageEdit) return position;
     return activeStep === 0 ? position : positionRest ?? position;
-  }, [mode, activeStep, position, positionRest, isPageEdit, placements, selectedPlacement]);
+  }, [mode, activeStep, position, positionRest, isPageEdit, currentPlacements, selectedPlacement]);
 
   const activeLogoAxis = useMemo(() => {
-    if (placements.length > 0) {
-      const placement = placements[selectedPlacement] ?? placements[0];
+    if (currentPlacements.length > 0) {
+      const placement = currentPlacements[selectedPlacement] ?? currentPlacements[0];
       if (mode === "single" || isPageEdit) return placement.logo_axis;
       return activeStep === 0 ? placement.logo_axis : placement.logo_axis_rest;
     }
     if (mode === "single" || isPageEdit) return logoAxis;
     return activeStep === 0 ? logoAxis : logoAxisRest;
-  }, [mode, activeStep, logoAxis, logoAxisRest, isPageEdit, placements, selectedPlacement]);
+  }, [mode, activeStep, logoAxis, logoAxisRest, isPageEdit, currentPlacements, selectedPlacement]);
 
   const activePlacements = useMemo(
-    () => placements.map((item) => mode === "first_rest" && activeStep === 1
-      ? item.position_rest ?? item.position
-      : item.position),
-    [placements, mode, activeStep]
+    () => currentPlacements.map((item) => item.position),
+    [currentPlacements]
   );
 
   const setActivePosition = useCallback(
     (p: Position) => {
-      if (placements.length > 0) {
-        setPlacements((prev) => prev.map((item, index) => {
+      if (currentPlacements.length > 0) {
+        const update = (prev: LogoPlacement[]) => prev.map((item, index) => {
           if (index !== selectedPlacement) return item;
-          return mode === "single" || isPageEdit
-            ? { ...item, position: p }
-            : activeStep === 0 ? { ...item, position: p } : { ...item, position_rest: p };
-        }));
+          return { ...item, position: p };
+        });
+        if (editingRestPlacements) setPlacementsRest(update); else setPlacements(update);
         return;
       }
       if (mode === "single" || activeStep === 0 || isPageEdit) setPosition(p);
       else setPositionRest(p);
     },
-    [mode, activeStep, isPageEdit, placements.length, selectedPlacement]
+    [currentPlacements.length, editingRestPlacements, selectedPlacement, mode, activeStep, isPageEdit]
   );
 
   const setActiveLogoAxis = useCallback(
     (axis: LogoAxis) => {
-      if (placements.length > 0) {
-        setPlacements((prev) => prev.map((item, index) => {
+      if (currentPlacements.length > 0) {
+        const update = (prev: LogoPlacement[]) => prev.map((item, index) => {
           if (index !== selectedPlacement) return item;
-          return mode === "single" || isPageEdit
-            ? { ...item, logo_axis: axis }
-            : activeStep === 0 ? { ...item, logo_axis: axis } : { ...item, logo_axis_rest: axis };
-        }));
+          return editingRestPlacements
+            ? { ...item, logo_axis_rest: axis }
+            : { ...item, logo_axis: axis };
+        });
+        if (editingRestPlacements) setPlacementsRest(update); else setPlacements(update);
         return;
       }
       if (mode === "single" || activeStep === 0) setLogoAxis(axis);
       else setLogoAxisRest(axis);
     },
-    [mode, activeStep, isPageEdit, placements.length, selectedPlacement]
+    [currentPlacements.length, editingRestPlacements, selectedPlacement, mode, activeStep]
   );
 
   const addPlacement = useCallback(() => {
-    if (placements.length >= 3) return;
+    if (currentPlacements.length >= 3) return;
     const base = activePosition;
     const next: LogoPlacement = {
       position: { ...base, x: clamp(base.x + 20, 0, base.page_width - base.width), y: clamp(base.y + 20, 0, base.page_height - base.height) },
@@ -128,15 +129,17 @@ export function usePositionEditor(
       logo_axis: activeLogoAxis,
       logo_axis_rest: activeLogoAxis,
     };
-    setPlacements((prev) => [...prev, next]);
-    setSelectedPlacement(placements.length);
-  }, [placements.length, activePosition, mode, activeLogoAxis]);
+    if (editingRestPlacements) setPlacementsRest((prev) => [...prev, next]);
+    else setPlacements((prev) => [...prev, next]);
+    setSelectedPlacement(currentPlacements.length);
+  }, [currentPlacements.length, activePosition, activeLogoAxis, editingRestPlacements, mode]);
 
   const removePlacement = useCallback(() => {
-    if (placements.length <= 1) return;
-    setPlacements((prev) => prev.filter((_, index) => index !== selectedPlacement));
-    setSelectedPlacement((prev) => Math.max(0, Math.min(prev, placements.length - 2)));
-  }, [placements.length, selectedPlacement]);
+    if (currentPlacements.length <= 1) return;
+    const update = (prev: LogoPlacement[]) => prev.filter((_, index) => index !== selectedPlacement);
+    if (editingRestPlacements) setPlacementsRest(update); else setPlacements(update);
+    setSelectedPlacement((prev) => Math.max(0, Math.min(prev, currentPlacements.length - 2)));
+  }, [currentPlacements.length, selectedPlacement, editingRestPlacements]);
 
   // Resolve the effective position for a page, mirroring the backend rule.
   const resolvePagePosition = useCallback(
@@ -206,7 +209,9 @@ export function usePositionEditor(
         setLogoAxis((job.config?.logo_axis as LogoAxis) ?? "top_left");
         setLogoAxisRest((job.config?.logo_axis_rest as LogoAxis) ?? "top_left");
         const savedPlacements = (job.config?.logo_placements ?? []).slice(0, 3);
+        const savedPlacementsRest = (job.config?.logo_placements_rest ?? []).slice(0, 3);
         if (savedPlacements.length > 0) setPlacements(savedPlacements);
+        if (savedPlacementsRest.length > 0) setPlacementsRest(savedPlacementsRest);
         setSelectedPlacement(0);
 
         let initialPosition: Position;
@@ -255,13 +260,24 @@ export function usePositionEditor(
             page_height: rest?.page_height || ph,
           };
           setPositionRest(restPos);
-          if (savedPlacements.length === 0) {
-            setPlacements((prev) => prev.map((item, index) =>
-              index === 0 ? { ...item, position_rest: restPos } : item
-            ));
+          if (savedPlacementsRest.length === 0) {
+            setPlacementsRest([{
+              position: restPos,
+              position_rest: null,
+              logo_axis: (job.config?.logo_axis_rest as LogoAxis) ?? "top_left",
+              logo_axis_rest: (job.config?.logo_axis_rest as LogoAxis) ?? "top_left",
+            }]);
           }
         } else {
           setPositionRest(null);
+          if (jobMode === "first_rest" && savedPlacementsRest.length === 0) {
+            setPlacementsRest([{
+              position: initialPosition,
+              position_rest: null,
+              logo_axis: (job.config?.logo_axis_rest as LogoAxis) ?? "top_left",
+              logo_axis_rest: (job.config?.logo_axis_rest as LogoAxis) ?? "top_left",
+            }]);
+          }
         }
 
         setLogoUrl(URL.createObjectURL(logoBlob));
@@ -447,6 +463,7 @@ export function usePositionEditor(
         logo_axis: logoAxis,
           logo_axis_rest: logoAxisRest,
           logo_placements: placements.slice(0, 3),
+          logo_placements_rest: placementsRest.slice(0, 3),
         ...(mode === "first_rest" && positionRest ? { position_rest: positionRest } : {}),
       };
       await api.updateConfig(jobId, config);
@@ -465,6 +482,7 @@ export function usePositionEditor(
     logoAxis,
     logoAxisRest,
     placements,
+    placementsRest,
   ]);
 
   const handleConfirm = useCallback(async () => {
