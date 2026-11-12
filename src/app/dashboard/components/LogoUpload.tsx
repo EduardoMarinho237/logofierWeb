@@ -15,6 +15,7 @@ interface LogoUploadProps {
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onLogosChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (id: string) => void;
+  onSetSavePreference: (id: string, saveToLibrary: boolean) => void;
   onAddSaved: (logos: Logo[]) => void;
   onReplaceSaved: (logo: Logo) => void;
 }
@@ -28,6 +29,7 @@ export function LogoUpload({
   onLogoChange,
   onLogosChange,
   onRemove,
+  onSetSavePreference,
   onAddSaved,
   onReplaceSaved,
 }: LogoUploadProps) {
@@ -131,6 +133,17 @@ export function LogoUpload({
                     <span className="w-full truncate text-center text-[10px] text-[#0e525b]/70">
                       {item.name}
                     </span>
+                    {item.kind === "file" && (
+                      <label className="flex w-full cursor-pointer items-center justify-center gap-1 text-[10px] font-medium text-[#0e525b]/70">
+                        <input
+                          type="checkbox"
+                          checked={item.saveToLibrary}
+                          onChange={(event) => onSetSavePreference(item.id, event.target.checked)}
+                          className="h-3 w-3 accent-[#2b9aa8]"
+                        />
+                        Salvar em Meus logos
+                      </label>
+                    )}
                     <button
                       onClick={() => onRemove(item.id)}
                       className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-md shadow-red-500/25 transition hover:bg-red-600 active:scale-90"

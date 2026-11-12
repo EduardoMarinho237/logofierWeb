@@ -21,7 +21,7 @@ export interface Step {
 }
 
 export type SelectedLogo =
-  | { kind: "file"; id: string; file: File; name: string; preview: string }
+  | { kind: "file"; id: string; file: File; name: string; preview: string; saveToLibrary: boolean }
   | { kind: "existing"; id: string; logo: Logo; name: string; preview: string };
 
 const ACCEPTED_LOGO = "image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/bmp,image/tiff";
@@ -109,7 +109,7 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
       prev.forEach((l) => {
         if (l.kind === "file") URL.revokeObjectURL(l.preview);
       });
-      return [{ kind: "file", id: uniqueFileId(file), file, name: file.name, preview: fileObjectUrl(file) }];
+      return [{ kind: "file", id: uniqueFileId(file), file, name: file.name, preview: fileObjectUrl(file), saveToLibrary: true }];
     });
     if (e.target) e.target.value = "";
   }, []);
@@ -125,6 +125,7 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
         file,
         name: file.name,
         preview: fileObjectUrl(file),
+        saveToLibrary: true,
       })),
     ]);
     if (e.target) e.target.value = "";
@@ -162,6 +163,14 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
       if (target && target.kind === "file") URL.revokeObjectURL(target.preview);
       return prev.filter((l) => l.id !== id);
     });
+  }, []);
+
+  const setLogoSavePreference = useCallback((id: string, saveToLibrary: boolean) => {
+    setSelectedLogos((prev) =>
+      prev.map((item) =>
+        item.kind === "file" && item.id === id ? { ...item, saveToLibrary } : item
+      )
+    );
   }, []);
 
   const replaceWithSaved = useCallback(async (logo: Logo) => {
@@ -293,11 +302,15 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
         pos_strategy: effectiveStrategy,
         logo_axis: preset?.logo_axis ?? "top_left",
         logo_axis_rest: preset?.logo_axis_rest ?? "top_left",
+        from_preset: locked,
         ...(positionRest ? { position_rest: positionRest } : {}),
       };
       const logoFiles = selectedLogos.filter((l) => l.kind === "file").map((l) => (l.kind === "file" ? l.file : null)).filter((f): f is File => f !== null);
       const logoIds = selectedLogos.filter((l) => l.kind === "existing").map((l) => (l.kind === "existing" ? l.logo.id : null)).filter((id): id is string => id !== null);
-      const job = await api.createJob({ logoFiles, logoIds, config });
+      const saveLogos = selectedLogos
+        .filter((l): l is Extract<SelectedLogo, { kind: "file" }> => l.kind === "file")
+        .map((l) => l.saveToLibrary);
+      const job = await api.createJob({ logoFiles, logoIds, saveLogos, config });
       await api.uploadFiles(job.id, pdfs);
 
       if (effectiveStrategy === "individual") {
@@ -352,6 +365,7 @@ export function useJobCreator(initialMode?: JobMode | null, preset?: Preset | nu
     handleLogosChange,
     addSavedLogos,
     removeSelected,
+    setLogoSavePreference,
     replaceWithSaved,
     handlePdfChange,
     handlePdfRemove,

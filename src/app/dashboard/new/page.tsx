@@ -120,6 +120,7 @@ function NewJobWizard({ mode, preset }: { mode: JobMode; preset: Preset | null }
                 onLogoChange={creator.handleLogoChange}
                 onLogosChange={creator.handleLogosChange}
                 onRemove={creator.removeSelected}
+                onSetSavePreference={creator.setLogoSavePreference}
                 onAddSaved={creator.addSavedLogos}
                 onReplaceSaved={creator.replaceWithSaved}
               />

@@ -21,6 +21,7 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
+  const [saveAsPreset, setSaveAsPreset] = useState(false);
   const [processing, setProcessing] = useState(false);
   const processingRef = useRef(false);
 
@@ -69,6 +70,18 @@ export default function ReviewPage() {
       setProcessing(false);
     }
   }, [jobId, router]);
+
+  const handleDownloadClick = useCallback(() => {
+    if (config?.from_preset) {
+      handleProceed();
+      return;
+    }
+    if (saveAsPreset) {
+      setModalOpen(true);
+    } else {
+      handleProceed();
+    }
+  }, [config?.from_preset, handleProceed, saveAsPreset]);
 
   const summary = useMemo(() => {
     const totalPages = files.length;
@@ -155,6 +168,17 @@ export default function ReviewPage() {
                     <p className="text-sm font-semibold text-[#0e525b]">
                       Tudo certo?
                     </p>
+                    {!config?.from_preset && (
+                      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm font-medium text-[#0e525b]">
+                        <input
+                          type="checkbox"
+                          checked={saveAsPreset}
+                          onChange={(event) => setSaveAsPreset(event.target.checked)}
+                          className="h-4 w-4 accent-[#2b9aa8]"
+                        />
+                        Salvar modelo/preset
+                      </label>
+                    )}
                     <p className="mt-0.5 text-xs text-[#0e525b]/70">
                       Os arquivos serão gerados exatamente como aparecem acima.
                     </p>
@@ -169,7 +193,7 @@ export default function ReviewPage() {
                     Voltar
                   </button>
                   <button
-                    onClick={() => setModalOpen(true)}
+                    onClick={handleDownloadClick}
                     disabled={processing}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#2b9aa8] px-4 py-3 text-base font-semibold text-white shadow-lg shadow-[#2b9aa8]/30 transition hover:bg-[#248a97] active:scale-[0.98] disabled:opacity-60"
                   >

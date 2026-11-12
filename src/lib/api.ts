@@ -159,6 +159,7 @@ export interface JobConfig {
   pos_strategy?: string;
   logo_axis?: string;
   logo_axis_rest?: string;
+  from_preset?: boolean;
   logo_positions?: Record<string, LogoPositionConfig>;
   file_page_positions?: Record<string, PagePositionMap>;
 }
@@ -423,11 +424,13 @@ export const api = {
   async createJob(options: {
     logoFiles?: File[];
     logoIds?: string[];
+    saveLogos?: boolean[];
     config: JobConfig;
   }): Promise<Job> {
     const form = new FormData();
     for (const l of options.logoFiles ?? []) form.append("logo", l);
     for (const id of options.logoIds ?? []) form.append("logo_ids", id);
+    for (const save of options.saveLogos ?? []) form.append("save_logos", String(save));
     form.append("config", JSON.stringify(options.config));
     return request<Job>("/api/jobs", { method: "POST", body: form });
   },
